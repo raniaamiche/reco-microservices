@@ -1,0 +1,86 @@
+#version: '3.8'
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.0.1
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+    ports:
+      - "2181:2181"
+    networks:
+      - reco-net
+
+  kafka:
+    image: confluentinc/cp-kafka:7.0.1
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    ports:
+      - "9092:9092"
+    networks:
+      - reco-net
+
+  mongo:
+    image: mongo
+    container_name: mongo
+    ports:
+      - "27017:27017"
+    networks:
+      - reco-net
+
+  user-service:
+    build: ./user-service
+    depends_on:
+      - mongo
+    ports:
+      - "3001:3001"
+    networks:
+      - reco-net
+
+  product-service:
+    build: ./product-service
+    depends_on:
+      - kafka
+      - mongo
+    restart: always
+    ports:
+      - "3002:3002"
+    networks:
+      - reco-net
+
+  reco-service:
+    build: ./reco-service
+    depends_on:
+      - mongo
+    ports:
+      - "50051:50051"
+    networks:
+      - reco-net
+
+  api-gateway:
+    build: ./api-gateway
+    depends_on:
+      - user-service
+      - product-service
+      - reco-service
+    ports:
+      - "3000:3000"
+    networks:
+      - reco-net
+
+  notification-service:
+    build: ./notification-service
+    depends_on:
+      - kafka
+    networks:
+      - reco-net
+    
+
+networks:
+  reco-net:
+    driver: bridge

@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package reco;
+
+service RecoService {
+  rpc GetRecommendations(RecoRequest) returns (RecoResponse);
+}
+
+message RecoRequest {
+  string userId = 1;
+}
+
+message RecoResponse {
+  repeated string productIds = 1;
+}
